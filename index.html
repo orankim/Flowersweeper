@@ -677,7 +677,7 @@
     <!-- 게임 현황 헤더 -->
     <section class="game-status-header">
       <!-- 남은 꽃 개수 -->
-      <div class="status-pill" title="남은 꽃 표지판">
+      <div class="status-pill" title="남은 꽃 모종삽">
         <span class="icon">🌸</span>
         <span id="flowers-count">010</span>
       </div>
@@ -707,7 +707,7 @@
         <span>💻 PC: 좌클릭 / 📱 모바일: 단일 터치</span>
       </div>
       <div class="guide-item">
-        <span><strong>표지판 🪵</strong> (꽃 위치 표시)</span>
+        <span><strong>모종삽 <svg viewBox="0 0 24 24" style="width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle;"><path d="M3.5 20.5C3.2 20.8 3.2 21.3 3.5 21.5C3.7 21.8 4.2 21.8 4.5 21.5L10.5 15.5C12.5 14.5 13.5 12.5 13.5 10.5C13.5 10.2 13.3 10 13 10H7C5 10 3 11 2 13L3.5 20.5Z" fill="#B0BEC5"/><path d="M3.5 20.5L2 13C3 11 5 10 7 10V10.5C7 12 6 13.5 4.5 14.5L3.5 20.5Z" fill="#90A4AE"/><path d="M11 13L14.5 9.5" stroke="#78909C" stroke-width="2.5" stroke-linecap="round"/><path d="M13.5 10.5L18.5 5.5C19.3 4.7 20.7 4.7 21.5 5.5C22.3 6.3 22.3 7.7 21.5 8.5L16.5 13.5C15.7 14.3 14.3 14.3 13.5 13.5C12.7 12.7 12.7 11.3 13.5 10.5Z" fill="#D32F2F"/><path d="M14.5 9.5L19 5C19.5 4.5 20.5 4.5 21 5C21.5 5.5 21.5 6.5 21 7L16.5 11.5L14.5 9.5Z" fill="#FF5252"/></svg></strong> (꽃 위치 표시)</span>
         <span>💻 PC: 우클릭 / 📱 모바일: 길게 누르기(0.5초)</span>
       </div>
       <div class="guide-item">
@@ -763,7 +763,7 @@
 
     // 아름다운 꽃밭 연출을 위해 임의로 고를 수 있는 꽃 이모지 풀
     const flowerEmojis = ['🌸', '🌹', '🌻', '🌷', '🌼'];
-    const flagEmoji = '🪵';      // 꽃 표지판 (Garden Sign)
+    const flagEmoji = `<svg viewBox="0 0 24 24" class="trowel-icon" style="width: 1.25em; height: 1.25em; display: inline-block; vertical-align: middle;"><path d="M3.5 20.5C3.2 20.8 3.2 21.3 3.5 21.5C3.7 21.8 4.2 21.8 4.5 21.5L10.5 15.5C12.5 14.5 13.5 12.5 13.5 10.5C13.5 10.2 13.3 10 13 10H7C5 10 3 11 2 13L3.5 20.5Z" fill="#B0BEC5"/><path d="M3.5 20.5L2 13C3 11 5 10 7 10V10.5C7 12 6 13.5 4.5 14.5L3.5 20.5Z" fill="#90A4AE"/><path d="M11 13L14.5 9.5" stroke="#78909C" stroke-width="2.5" stroke-linecap="round"/><path d="M13.5 10.5L18.5 5.5C19.3 4.7 20.7 4.7 21.5 5.5C22.3 6.3 22.3 7.7 21.5 8.5L16.5 13.5C15.7 14.3 14.3 14.3 13.5 13.5C12.7 12.7 12.7 11.3 13.5 10.5Z" fill="#D32F2F"/><path d="M14.5 9.5L19 5C19.5 4.5 20.5 4.5 21 5C21.5 5.5 21.5 6.5 21 7L16.5 11.5L14.5 9.5Z" fill="#FF5252"/></svg>`;      // 모종삽 (Trowel with Red Handle)
     const grassEmoji = '🌿';     // 덮여있는 잔디
     const explodedEmoji = '🥀';  // 밟은 꽃 (Game Over 클릭셀 전용)
 
@@ -1190,10 +1190,10 @@
 
       if (cell.isFlagged) {
         el.classList.add('flagged');
-        span.textContent = flagEmoji;
+        span.innerHTML = flagEmoji;
         span.className = 'cell-content animate-pop';
         flagsCount++;
-        el.setAttribute('aria-label', `${cell.row + 1}행 ${cell.col + 1}열, 표지판 설치됨`);
+        el.setAttribute('aria-label', `${cell.row + 1}행 ${cell.col + 1}열, 모종삽 설치됨`);
       } else {
         el.classList.remove('flagged');
         span.textContent = grassEmoji;
@@ -1319,13 +1319,13 @@
       stopTimer();
       setGardenerFace('😎');
 
-      // 아직 깃발 꼽지 않은 미확인 꽃 위치에 자동으로 표지판(🪵) 삽입
+      // 아직 모종삽을 꽂지 않은 미확인 꽃 위치에 자동으로 모종삽 삽입
       for (let r = 0; r < config.height; r++) {
         for (let c = 0; c < config.width; c++) {
           if (grid[r][c].isFlower && !grid[r][c].isFlagged) {
             grid[r][c].isFlagged = true;
             grid[r][c].element.classList.add('flagged');
-            grid[r][c].element.querySelector('.cell-content').textContent = flagEmoji;
+            grid[r][c].element.querySelector('.cell-content').innerHTML = flagEmoji;
           }
         }
       }
@@ -1359,7 +1359,7 @@
           if (cell === clickedCell) continue;
 
           if (cell.isFlower) {
-            // 표지판을 안 꽂은 곳만 꽃을 노출
+            // 모종삽을 안 꽂은 곳만 꽃을 노출
             if (!cell.isFlagged) {
               cell.isRevealed = true;
               cell.element.classList.add('revealed', 'flower');
@@ -1368,7 +1368,7 @@
               span.classList.add('animate-pop');
             }
           } else if (cell.isFlagged) {
-            // 꽃이 없는데 잘못 꽂아둔 표지판은 에러 스타일(🪵❌) 부여
+            // 꽃이 없는데 잘못 꽂아둔 모종삽은 에러 스타일 부여
             cell.element.classList.add('wrong-flag');
             cell.element.querySelector('.cell-content').innerHTML = `${flagEmoji}❌`;
           }
@@ -1612,7 +1612,7 @@
               <span class="stat-value">${timeElapsed}초</span>
             </div>
             <div class="stat-box">
-              <span class="stat-label">설치된 표지판</span>
+              <span class="stat-label">사용된 모종삽</span>
               <span class="stat-value">${flagsCount}개</span>
             </div>
           </div>
