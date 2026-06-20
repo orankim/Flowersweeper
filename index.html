@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>꽃밭 가꾸기 (Flower Sweeper) - 평화로운 꽃찾기 게임</title>
+  
+  <!-- SEO 메타 태그 -->
+  <meta name="description" content="전통적인 지뢰찾기 게임을 아름다운 정원과 꽃 테마로 재해석한 웹 게임입니다. 흙을 일구고 잡초를 제거하며 소중한 꽃밭을 가꿔보세요!">
+  <meta name="keywords" content="지뢰찾기, 꽃찾기, Flower Sweeper, Minesweeper, HTML5 게임, 퍼즐 게임, 웹게임">
+  <meta name="author" content="Antigravity">
+  
+  <!-- Google Fonts 가져오기 (고급스럽고 깔끔한 글꼴) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* CSS 변수 설정 (테마 및 애니메이션 타임 정의) */
+    :root {
+      --bg-color: #E8F5E9; /* 파스텔톤 연초록 */
+      --primary-color: #2E7D32; /* 포근한 짙은 녹색 */
+      --primary-light: #C8E6C9; /* 연한 초록 테두리용 */
+      --accent-color: #81C784; /* 잔디 기본 초록 */
+      --accent-hover: #66BB6A; /* 잔디 호버 초록 */
+      --soil-color: #EFEBE9; /* 일군 흙색 (오픈된 셀) */
+      --soil-empty: #F5F5F5; /* 빈 흙색 (0 주변 꽃) */
+      --text-color: #37474F; /* 부드러운 다크 그레이 */
+      --card-bg: rgba(255, 255, 255, 0.85); /* 글래스모피즘 베이스 */
+      
+      --cell-size: 38px;
+      --transition-speed: 0.2s;
+    }
+
+    /* 전역 초기화 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', 'Outfit', sans-serif;
+      background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 10px;
+      overflow-x: hidden;
+    }
+
+    /* 게임 전체 앱 컨테이너 */
+    .app-container {
+      width: 100%;
+      max-width: 650px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* 타이틀 및 헤더 */
+    header.title-section {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    header.title-section h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    header.title-section p {
+      font-size: 0.9rem;
+      color: #78909C;
+      font-weight: 400;
+    }
+
+    /* 컨트롤 및 설정 패널 */
+    .settings-panel {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .preset-buttons {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .preset-btn {
+      flex: 1;
+      border: 1px solid rgba(46, 125, 50, 0.2);
+      background: #fff;
+      color: var(--primary-color);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-speed) ease;
+    }
+
+    .preset-btn.active {
+      background: var(--primary-color);
+      color: #fff;
+      border-color: var(--primary-color);
+      box-shadow: 0 4px 10px rgba(46, 125, 50, 0.2);
+    }
+
+    .preset-btn:hover:not(.active) {
+      background: rgba(46, 125, 50, 0.05);
+    }
+
+    /* 커스텀 크기 입력 양식 */
+    .custom-inputs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr) auto;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .input-group label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #546E7A;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #CFD8DC;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      text-align: center;
+      color: var(--text-color);
+      outline: none;
+      transition: border-color var(--transition-speed);
+    }
+
+    .input-group input:focus {
+      border-color: var(--primary-color);
+    }
+
+    .apply-btn {
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      height: 38px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color var(--transition-speed);
+    }
+
+    .apply-btn:hover {
+      background: #1B5E20;
+    }
+
+    /* 상단 게임 상태 헤더 */
+    .game-status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 16px;
+      padding: 12px 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-color);
+      background: #ECEFF1;
+      padding: 6px 14px;
+      border-radius: 12px;
+      min-width: 90px;
+      justify-content: center;
+    }
+
+    .status-pill span.icon {
+      font-size: 1.2rem;
+    }
+
+    /* 이모지 리셋 버튼 */
+    .reset-btn-wrapper {
+      position: relative;
+    }
+
+    .reset-face {
+      font-size: 2rem;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 2px solid var(--primary-light);
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      user-select: none;
+    }
+
+    .reset-face:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 16px rgba(46, 125, 50, 0.25);
+    }
+
+    .reset-face:active {
+      transform: scale(0.95);
+    }
+
+    /* 게임 보드 및 스크롤 래퍼 */
+    .board-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      display: block;
+      text-align: center;
+    }
+
+    /* 스크롤바 커스터마이징 */
+    .board-wrapper::-webkit-scrollbar {
+      height: 8px;
+    }
+    .board-wrapper::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.03);
+      border-radius: 10px;
+    }
+    .board-wrapper::-webkit-scrollbar-thumb {
+      background: rgba(46, 125, 50, 0.2);
+      border-radius: 10px;
+    }
+    .board-wrapper::-webkit-scrollbar-thumb:hover {
+      background: rgba(46, 125, 50, 0.4);
+    }
+
+    #game-board {
+      display: grid;
+      grid-template-columns: repeat(var(--cols), var(--cell-size));
+      grid-template-rows: repeat(var(--rows), var(--cell-size));
+      gap: 3px;
+      padding: 8px;
+      border-radius: 12px;
+      background-color: var(--primary-light);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0 auto;
+      width: max-content;
+    }
+
+    /* 개별 셀 스타일 */
+    .cell {
+      background: linear-gradient(135deg, #A5D6A7 0%, #81C784 100%);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      touch-action: manipulation;
+      outline: none;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .cell:hover:not(.revealed):not(.flagged) {
+      background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .cell:active:not(.revealed):not(.flagged) {
+      transform: scale(0.92);
+    }
+
+    /* 오픈된 셀 */
+    .cell.revealed {
+      background: var(--soil-color);
+      cursor: default;
+      box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.06);
+    }
+
+    .cell.revealed.empty {
+      background: var(--soil-empty);
+    }
+
+    /* 셀 오픈 애니메이션 */
+    .cell.revealed {
+      animation: revealAnim 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
+    }
+
+    @keyframes revealAnim {
+      0% {
+        transform: scale(0.85);
+        opacity: 0.8;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* 표지판(깃발) 꽂힌 셀 */
+    .cell.flagged {
+      background: linear-gradient(135deg, #FFF59D 0%, #FFE082 100%);
+    }
+
+    /* 지뢰 밟아서 폭발한 셀 */
+    .cell.revealed.flower.exploded {
+      background: linear-gradient(135deg, #FF8A80 0%, #FF5252 100%);
+      animation: shake 0.35s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-3px); }
+      40%, 80% { transform: translateX(3px); }
+    }
+
+    /* 엉뚱하게 깃발 꽂은 셀 표시 (게임오버 시) */
+    .cell.wrong-flag {
+      background: linear-gradient(135deg, #FFCDD2 0%, #EF9A9A 100%);
+    }
+
+    /* 셀 내용물 및 폰트 크기 조절 */
+    .cell-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* 이모지 팝 애니메이션 */
+    .animate-pop {
+      animation: pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.3) forwards;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* 숫자별 가독성 높은 파스텔/비비드 톤 배색 */
+    .num-1 { color: #1E88E5; }
+    .num-2 { color: #43A047; }
+    .num-3 { color: #E53935; }
+    .num-4 { color: #8E24AA; }
+    .num-5 { color: #8D6E63; }
+    .num-6 { color: #00ACC1; }
+    .num-7 { color: #212121; }
+    .num-8 { color: #78909C; }
+
+    /* 조작 가이드 안내 영역 */
+    .instruction-guide {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      padding: 14px;
+      font-size: 0.8rem;
+      color: #546E7A;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .guide-title {
+      font-weight: 700;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .guide-item {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed rgba(0, 0, 0, 0.05);
+      padding-bottom: 4px;
+    }
+
+    .guide-item:last-child {
+      border: none;
+      padding-bottom: 0;
+    }
+
+    /* 사운드 토글 및 푸터 */
+    .footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      font-size: 0.75rem;
+      color: #90A4AE;
+    }
+
+    .sound-toggle-btn {
+      background: #ECEFF1;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-color);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background-color var(--transition-speed);
+    }
+
+    .sound-toggle-btn:hover {
+      background: #CFD8DC;
+    }
+
+    /* 커스텀 모달 레이아웃 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: #fff;
+      border-radius: 24px;
+      width: 90%;
+      max-width: 400px;
+      padding: 28px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
+    }
+
+    .modal-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+    }
+
+    .modal-text {
+      font-size: 0.95rem;
+      color: #546E7A;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    /* 결과 모달의 상세 스탯 그리드 */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      background: #F1F8E9;
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #757575;
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all var(--transition-speed);
+    }
+
+    .btn-primary {
+      background: var(--primary-color);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #1B5E20;
+    }
+
+    .btn-secondary {
+      background: #CFD8DC;
+      color: var(--text-color);
+    }
+
+    .btn-secondary:hover {
+      background: #B0BEC5;
+    }
+
+    /* 콘페티 캔버스 overlay */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* 모바일 반응형 대응 */
+    @media (max-width: 480px) {
+      :root {
+        --cell-size: 34px; /* 모바일에서 셀 크기 소폭 축소 */
+      }
+      .app-container {
+        padding: 16px;
+        gap: 14px;
+      }
+      .custom-inputs {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .apply-btn {
+        grid-column: span 2;
+        width: 100%;
+      }
+      header.title-section h1 {
+        font-size: 1.5rem;
+      }
+      .game-status-header {
+        padding: 10px 14px;
+      }
+      .status-pill {
+        font-size: 0.95rem;
+        padding: 6px 10px;
+        min-width: 80px;
+      }
+      .reset-face {
+        width: 42px;
+        height: 42px;
+        font-size: 1.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 콘페티(축하가루) 캔버스 -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <div class="app-container">
+    
+    <!-- 게임 제목 섹션 -->
+    <header class="title-section">
+      <h1>🌸 꽃밭 가꾸기</h1>
+      <p>잡초와 자갈을 피해서 꽃들이 활짝 피어나게 도와주세요.</p>
+    </header>
+
+    <!-- 게임 설정 영역 -->
+    <section class="settings-panel">
+      <!-- 난이도 프리셋 -->
+      <div class="preset-buttons">
+        <button id="preset-beginner" class="preset-btn active" onclick="setPreset('beginner')">초급 (9×9)</button>
+        <button id="preset-intermediate" class="preset-btn" onclick="setPreset('intermediate')">중급 (16×16)</button>
+        <button id="preset-advanced" class="preset-btn" onclick="setPreset('advanced')">고급 (30×16)</button>
+        <button id="preset-custom" class="preset-btn" style="display:none;">커스텀</button>
+      </div>
+
+      <!-- 커스텀 설정 폼 -->
+      <div class="custom-inputs">
+        <div class="input-group">
+          <label for="input-width">가로 칸수</label>
+          <input type="number" id="input-width" min="5" max="50" value="9" onchange="markCustomActive()">
+        </div>
+        <div class="input-group">
+          <label for="input-height">세로 칸수</label>
+          <input type="number" id="input-height" min="5" max="50" value="9" onchange="markCustomActive()">
+        </div>
+        <div class="input-group">
+          <label for="input-flowers">꽃 개수</label>
+          <input type="number" id="input-flowers" min="1" max="999" value="10" onchange="markCustomActive()">
+        </div>
+        <button class="apply-btn" onclick="applyCustomSettings()">정원 생성 ⚙️</button>
+      </div>
+    </section>
+
+    <!-- 게임 현황 헤더 -->
+    <section class="game-status-header">
+      <!-- 남은 꽃 개수 -->
+      <div class="status-pill" title="남은 꽃 표지판">
+        <span class="icon">🌸</span>
+        <span id="flowers-count">010</span>
+      </div>
+
+      <!-- 정원사 상태 리셋 버튼 -->
+      <div class="reset-btn-wrapper">
+        <button id="reset-face" class="reset-face" onclick="restartGame()" aria-label="게임 리셋">🙂</button>
+      </div>
+
+      <!-- 타이머 -->
+      <div class="status-pill" title="경과 시간">
+        <span class="icon">⏱️</span>
+        <span id="timer-count">000</span>
+      </div>
+    </section>
+
+    <!-- 게임 보드 -->
+    <main class="board-wrapper" id="board-wrapper">
+      <div id="game-board"></div>
+    </main>
+
+    <!-- 조작 가이드 -->
+    <section class="instruction-guide">
+      <div class="guide-title">💡 플레이 방법 가이드</div>
+      <div class="guide-item">
+        <span><strong>흙 파기</strong> (셀 열기)</span>
+        <span>💻 PC: 좌클릭 / 📱 모바일: 단일 터치</span>
+      </div>
+      <div class="guide-item">
+        <span><strong>표지판 🪵</strong> (꽃 위치 표시)</span>
+        <span>💻 PC: 우클릭 / 📱 모바일: 길게 누르기(0.5초)</span>
+      </div>
+      <div class="guide-item">
+        <span><strong>코드 자동 열기 ⚡</strong> (편의기능)</span>
+        <span>💻 PC: 숫자셀 더블클릭 / 📱 모바일: 숫자셀 더블탭</span>
+      </div>
+    </section>
+
+    <!-- 하단 메뉴 -->
+    <footer class="footer-actions">
+      <button class="sound-toggle-btn" onclick="toggleSound()">
+        <span id="sound-icon">🔊</span> 사운드 켜짐
+      </button>
+      <div>Made for Beautiful Gardening</div>
+    </footer>
+
+  </div>
+
+  <!-- 커스텀 알림/결과 모달 -->
+  <div class="modal-overlay" id="custom-modal">
+    <div class="modal-content">
+      <div class="modal-icon" id="modal-icon">🎉</div>
+      <h2 class="modal-title" id="modal-title">성공!</h2>
+      <div class="modal-body" id="modal-body">
+        <!-- 동적으로 주입될 결과 통계 -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="closeModal(); restartGame();">다시 시작</button>
+        <button class="btn btn-secondary" onclick="closeModal();">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. 게임 전역 설정 및 상태 변수
+    // ==========================================
+    let config = {
+      width: 9,      // 보드 가로 크기
+      height: 9,     // 보드 세로 크기
+      flowers: 10    // 총 배치될 꽃의 개수
+    };
+
+    let grid = [];               // 2차원 셀 정보 배열 grid[row][col]
+    let firstClick = true;       // 첫 클릭 보호를 위한 플래그
+    let gameOver = false;        // 게임 오버 플래그
+    let gameWon = false;         // 게임 성공 플래그
+    
+    let timerInterval = null;    // 타이머 인터벌
+    let timeElapsed = 0;         // 소요된 시간 (초 단위)
+    let flagsCount = 0;          // 꽂아둔 표지판(깃발) 개수
+    let soundEnabled = true;     // 사운드 효과 사용 여부
+
+    // 아름다운 꽃밭 연출을 위해 임의로 고를 수 있는 꽃 이모지 풀
+    const flowerEmojis = ['🌸', '🌹', '🌻', '🌷', '🌼'];
+    const flagEmoji = '🪵';      // 꽃 표지판 (Garden Sign)
+    const grassEmoji = '🌿';     // 덮여있는 잔디
+    const explodedEmoji = '🥀';  // 밟은 꽃 (Game Over 클릭셀 전용)
+
+    // 모바일 조작 감지용 변수
+    let touchTimer = null;       // 롱 프레스 감지용 타이머
+    const touchDuration = 500;   // 롱 프레스 인정을 위한 시간 (500ms)
+    let touchStartX = 0;         // 터치 시작 X 좌표
+    let touchStartY = 0;         // 터치 시작 Y 좌표
+    let isTouchMoved = false;    // 터치 중 손가락이 움직였는지 여부
+    let hasLongPressed = false;  // 롱 프레스로 처리되었는지 여부
+    let lastTapTime = 0;         // 더블 탭(Chording) 감지용 직전 터치 시간
+    let lastTouchTime = 0;       // 모바일 터치 이벤트 발생 시점 기록 (마우스 우클릭 오작동 방지용)
+
+    // Web Audio API를 활용한 순수 신디사이저 사운드 오브젝트
+    const SoundEffects = {
+      ctx: null,
+
+      // 브라우저 보안 규정상 사용자 인터랙션 후 AudioContext 인스턴스를 생성해야 합니다.
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      },
+
+      // 셀을 파헤칠 때 나는 부드러운 타격음
+      playClick() {
+        this.init();
+        if (!soundEnabled || !this.ctx) return;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(350, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.08);
+
+        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+      },
+
+      // 표지판을 설치/제거할 때 나는 통통 튀는 피치 상승음
+      playFlag() {
+        this.init();
+        if (!soundEnabled || !this.ctx) return;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.12);
+
+        gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.12);
+      },
+
+      // 게임 성공 시 연주되는 맑은 아르페지오 소리
+      playWin() {
+        this.init();
+        if (!soundEnabled || !this.ctx) return;
+
+        const notes = [261.63, 329.63, 392.00, 523.25]; // C4 -> E4 -> G4 -> C5
+        const now = this.ctx.currentTime;
+
+        notes.forEach((freq, index) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + index * 0.12);
+
+          gain.gain.setValueAtTime(0, now + index * 0.12);
+          gain.gain.linearRampToValueAtTime(0.1, now + index * 0.12 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.12 + 0.3);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(now + index * 0.12);
+          osc.stop(now + index * 0.12 + 0.35);
+        });
+      },
+
+      // 게임 오버(꽃을 밟았을 때) 시 나는 무겁고 둔탁한 소음
+      playLose() {
+        this.init();
+        if (!soundEnabled || !this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.linearRampToValueAtTime(40, now + 0.45);
+
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.45);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.5);
+      }
+    };
+
+    // ==========================================
+    // 2. 초기 보드 및 데이터 세팅 함수들
+    // ==========================================
+    
+    // 게임 초기화
+    function initGrid() {
+      grid = [];
+      const boardElement = document.getElementById('game-board');
+      boardElement.innerHTML = '';
+      
+      // CSS Grid 변수 바인딩
+      boardElement.style.setProperty('--cols', config.width);
+      boardElement.style.setProperty('--rows', config.height);
+
+      // 보드 래퍼 너비 조절 및 스크롤 여부 유도
+      const wrapper = document.getElementById('board-wrapper');
+      
+      for (let r = 0; r < config.height; r++) {
+        grid[r] = [];
+        for (let c = 0; c < config.width; c++) {
+          const cellObj = {
+            row: r,
+            col: c,
+            isFlower: false,
+            isRevealed: false,
+            isFlagged: false,
+            neighborFlowers: 0,
+            flowerEmoji: flowerEmojis[Math.floor(Math.random() * flowerEmojis.length)],
+            element: null
+          };
+
+          // 셀 Element 생성
+          const cellDiv = document.createElement('button');
+          cellDiv.classList.add('cell');
+          cellDiv.setAttribute('role', 'gridcell');
+          cellDiv.setAttribute('aria-label', `${r + 1}행 ${c + 1}열 흙`);
+          
+          const contentSpan = document.createElement('span');
+          contentSpan.classList.add('cell-content');
+          contentSpan.textContent = grassEmoji;
+          cellDiv.appendChild(contentSpan);
+
+          // ----------------------------------------
+          // 마우스 기반 이벤트 핸들러 (PC 전용)
+          // ----------------------------------------
+          
+          // 마우스 좌클릭 시 파헤치기
+          cellDiv.addEventListener('click', (e) => {
+            // 모바일 터치 이벤트 오작동 방지 (PointerEvent 종류 필터링)
+            if (e.pointerType === 'mouse') {
+              revealCell(cellObj);
+            }
+          });
+
+          // 우클릭 방지 후 꽃 표지판 세우기
+          cellDiv.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (gameOver || gameWon) return;
+            // 모바일 롱프레스 시뮬레이션(우클릭 이벤트)으로 깃발이 두 번 토글되는 문제 방지
+            if (Date.now() - lastTouchTime < 1000) {
+              return;
+            }
+            toggleFlag(cellObj);
+          });
+
+          // 더블클릭 Chording
+          cellDiv.addEventListener('dblclick', (e) => {
+            if (gameOver || gameWon) return;
+            chordCell(cellObj);
+          });
+
+          // ----------------------------------------
+          // 터치 기반 이벤트 핸들러 (모바일 지원)
+          // ----------------------------------------
+          cellDiv.addEventListener('touchstart', (e) => {
+            if (gameOver || gameWon) return;
+            lastTouchTime = Date.now();
+            isTouchMoved = false;
+            hasLongPressed = false;
+            
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+
+            // 터치를 시작하면 정원사 얼굴 표정이 깜짝 놀란 표정으로 변합니다.
+            setGardenerFace('😮');
+
+            // 롱프레스 감지 타이머 개시
+            touchTimer = setTimeout(() => {
+              hasLongPressed = true;
+              toggleFlag(cellObj);
+              if (navigator.vibrate) navigator.vibrate(40); // 가벼운 진동 피드백
+            }, touchDuration);
+          }, { passive: true });
+
+          cellDiv.addEventListener('touchmove', (e) => {
+            lastTouchTime = Date.now();
+            if (!touchTimer) return;
+            const touch = e.touches[0];
+            const deltaX = Math.abs(touch.clientX - touchStartX);
+            const deltaY = Math.abs(touch.clientY - touchStartY);
+
+            // 손가락이 8px 이상 많이 움직이면 스크롤로 간주하고 롱프레스 타이머를 취소합니다.
+            if (deltaX > 8 || deltaY > 8) {
+              isTouchMoved = true;
+              clearTimeout(touchTimer);
+              touchTimer = null;
+              resetGardenerFaceDefault();
+            }
+          }, { passive: true });
+
+          cellDiv.addEventListener('touchend', (e) => {
+            lastTouchTime = Date.now();
+            if (touchTimer) {
+              clearTimeout(touchTimer);
+              touchTimer = null;
+            }
+            
+            resetGardenerFaceDefault();
+
+            // 롱 프레스를 타지 않고 순수 탭 조작인 경우
+            if (!hasLongPressed && !isTouchMoved) {
+              e.preventDefault(); // 기본 터치 딜레이 방지
+              
+              let now = Date.now();
+              // 300ms 내에 재탭되면 더블탭(Chording)으로 판단
+              if (now - lastTapTime < 300) {
+                chordCell(cellObj);
+              } else {
+                revealCell(cellObj);
+              }
+              lastTapTime = now;
+            }
+          }, { passive: false });
+
+          // 드래그 등에 따른 비정상 취소 이벤트 처리
+          cellDiv.addEventListener('touchcancel', () => {
+            lastTouchTime = Date.now();
+            if (touchTimer) {
+              clearTimeout(touchTimer);
+              touchTimer = null;
+            }
+            resetGardenerFaceDefault();
+          });
+
+          // ----------------------------------------
+          // 웹 접근성 이벤트 대응
+          // ----------------------------------------
+          cellDiv.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+              e.preventDefault();
+              revealCell(cellObj);
+            } else if (e.key === 'f' || e.key === 'F') {
+              e.preventDefault();
+              toggleFlag(cellObj);
+            }
+          });
+
+          cellObj.element = cellDiv;
+          boardElement.appendChild(cellDiv);
+          grid[r][c] = cellObj;
+        }
+      }
+
+      // 잔여 꽃 개수 갱신
+      updateHeader();
+    }
+
+    // ==========================================
+    // 3. 게임 플레이 핵심 알고리즘
+    // ==========================================
+
+    // 첫 클릭 이후 보드 내에 꽃 배치 (첫 클릭 보호)
+    function placeFlowers(firstRow, firstCol) {
+      let pool = [];
+      for (let r = 0; r < config.height; r++) {
+        for (let c = 0; c < config.width; c++) {
+          // 첫 번째 클릭된 칸과 그의 인접 8칸(총 3x3 범위)은 꽃 배치에서 완전 배제합니다.
+          if (Math.abs(r - firstRow) <= 1 && Math.abs(c - firstCol) <= 1) {
+            continue;
+          }
+          pool.push({ r, c });
+        }
+      }
+
+      // Fisher-Yates 셔플 알고리즘으로 무작위 배치 공간 섞기
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+
+      // 섞인 풀의 앞부분부터 지정된 꽃 개수만큼 진짜 꽃으로 채움
+      const count = Math.min(config.flowers, pool.length);
+      for (let i = 0; i < count; i++) {
+        const pos = pool[i];
+        grid[pos.r][pos.c].isFlower = true;
+      }
+
+      // 각 빈 셀의 인접해 있는 꽃 개수(Neighbor count 0~8) 조사 후 기록
+      for (let r = 0; r < config.height; r++) {
+        for (let c = 0; c < config.width; c++) {
+          if (grid[r][c].isFlower) continue;
+
+          let neighbors = 0;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const nr = r + dr;
+              const nc = c + dc;
+              if (nr >= 0 && nr < config.height && nc >= 0 && nc < config.width) {
+                if (grid[nr][nc].isFlower) {
+                  neighbors++;
+                }
+              }
+            }
+          }
+          grid[r][c].neighborFlowers = neighbors;
+        }
+      }
+    }
+
+    // 셀 파헤치기 (BFS Flood Fill 포함)
+    function revealCell(cell) {
+      if (gameOver || gameWon || cell.isRevealed || cell.isFlagged) return;
+
+      // 첫 클릭에 대한 완벽 보호 처리
+      if (firstClick) {
+        firstClick = false;
+        placeFlowers(cell.row, cell.col);
+        startTimer();
+      }
+
+      // 꽃을 밟은 경우 -> 패배
+      if (cell.isFlower) {
+        triggerLoss(cell);
+        return;
+      }
+
+      // 탐색을 위한 큐 (BFS)
+      let queue = [cell];
+      cell.isRevealed = true;
+
+      // 소리 재생
+      SoundEffects.playClick();
+
+      while (queue.length > 0) {
+        let current = queue.shift();
+        revealCellElement(current);
+
+        // 만약 인접 꽃 수가 0개라면 주변 8칸도 연쇄 자동 오픈(Flood Fill)
+        if (current.neighborFlowers === 0) {
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const nr = current.row + dr;
+              const nc = current.col + dc;
+              
+              if (nr >= 0 && nr < config.height && nc >= 0 && nc < config.width) {
+                let neighbor = grid[nr][nc];
+                // 깃발 안 꼽혔고, 오픈 안 되었고, 꽃이 아닌 셀만 큐에 push
+                if (!neighbor.isRevealed && !neighbor.isFlagged && !neighbor.isFlower) {
+                  neighbor.isRevealed = true;
+                  queue.push(neighbor);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 승리 여부 판단
+      checkWinCondition();
+    }
+
+    // 셀 DOM 업데이트 및 렌더링
+    function revealCellElement(cell) {
+      const el = cell.element;
+      el.classList.add('revealed');
+      
+      // 스크린리더를 위한 웹 접근성 속성 변경
+      el.setAttribute('aria-expanded', 'true');
+      
+      const span = el.querySelector('.cell-content');
+
+      if (cell.isFlower) {
+        el.classList.add('flower');
+        span.textContent = cell.flowerEmoji;
+        span.classList.add('animate-pop');
+      } else if (cell.neighborFlowers > 0) {
+        span.textContent = cell.neighborFlowers;
+        span.className = `cell-content num-${cell.neighborFlowers}`;
+        el.setAttribute('aria-label', `${cell.row + 1}행 ${cell.col + 1}열, 인접한 꽃 ${cell.neighborFlowers}송이`);
+      } else {
+        span.textContent = ''; // 0인 빈 셀은 텍스트 없이 처리
+        el.classList.add('empty');
+        el.setAttribute('aria-label', `${cell.row + 1}행 ${cell.col + 1}열, 빈 흙`);
+      }
+    }
+
+    // 표지판(깃발) 꽂기/해제
+    function toggleFlag(cell) {
+      if (cell.isRevealed) return;
+
+      cell.isFlagged = !cell.isFlagged;
+      const el = cell.element;
+      const span = el.querySelector('.cell-content');
+
+      if (cell.isFlagged) {
+        el.classList.add('flagged');
+        span.textContent = flagEmoji;
+        span.className = 'cell-content animate-pop';
+        flagsCount++;
+        el.setAttribute('aria-label', `${cell.row + 1}행 ${cell.col + 1}열, 표지판 설치됨`);
+      } else {
+        el.classList.remove('flagged');
+        span.textContent = grassEmoji;
+        span.className = 'cell-content';
+        flagsCount--;
+        el.setAttribute('aria-label', `${cell.row + 1}행 ${cell.col + 1}열 흙`);
+      }
+
+      // 효과음
+      SoundEffects.playFlag();
+      updateHeader();
+      
+      // 만약 이미 배치 끝난 상황에서 깃발 변경이 승리에 부합하는지 체크
+      checkWinCondition();
+    }
+
+    // 코드 오픈 (Chording) 알고리즘
+    // 숫자가 공개된 칸 주변에 이미 설치된 표지판의 수가 그 숫자가 일치할 때,
+    // 표지판이 없는 주변의 나머지 잔여 셀들을 일괄 오픈하는 편의 기능입니다.
+    function chordCell(cell) {
+      if (!cell.isRevealed || cell.neighborFlowers === 0) return;
+
+      let flaggedCount = 0;
+      let unrevealedNeighbors = [];
+
+      // 인접 8방향의 정보 수집
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          const nr = cell.row + dr;
+          const nc = cell.col + dc;
+          
+          if (nr >= 0 && nr < config.height && nc >= 0 && nc < config.width) {
+            const neighbor = grid[nr][nc];
+            if (neighbor.isFlagged) {
+              flaggedCount++;
+            } else if (!neighbor.isRevealed) {
+              unrevealedNeighbors.push(neighbor);
+            }
+          }
+        }
+      }
+
+      // 주변에 세워진 표지판의 개수가 셀의 숫자 힌트와 완벽히 맞아떨어졌을 때
+      if (flaggedCount === cell.neighborFlowers && unrevealedNeighbors.length > 0) {
+        let hitFlower = false;
+        let flowerCell = null;
+
+        // 우선적으로 오픈할 셀 중 잘못 꼽은 위치 때문에 꽃을 밟는지 사전에 감지
+        for (let neighbor of unrevealedNeighbors) {
+          if (neighbor.isFlower) {
+            hitFlower = true;
+            flowerCell = neighbor;
+            break;
+          }
+        }
+
+        if (hitFlower) {
+          // 잘못 오픈되어 꽃을 밟음 -> 패배 트리거
+          triggerLoss(flowerCell);
+        } else {
+          // 일관 자동 오픈
+          SoundEffects.playClick();
+          let queue = [];
+          
+          for (let neighbor of unrevealedNeighbors) {
+            neighbor.isRevealed = true;
+            queue.push(neighbor);
+          }
+
+          // BFS 연쇄 오픈 처리
+          while (queue.length > 0) {
+            let current = queue.shift();
+            revealCellElement(current);
+
+            if (current.neighborFlowers === 0) {
+              for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                  const nr = current.row + dr;
+                  const nc = current.col + dc;
+                  
+                  if (nr >= 0 && nr < config.height && nc >= 0 && nc < config.width) {
+                    let neighbor = grid[nr][nc];
+                    if (!neighbor.isRevealed && !neighbor.isFlagged && !neighbor.isFlower) {
+                      neighbor.isRevealed = true;
+                      queue.push(neighbor);
+                    }
+                  }
+                }
+              }
+            }
+          }
+          checkWinCondition();
+        }
+      }
+    }
+
+    // ==========================================
+    // 4. 승리 및 패배 이벤트 관리
+    // ==========================================
+
+    // 승리 조건 검사
+    function checkWinCondition() {
+      let revealedSafeCount = 0;
+      const totalSafeCells = (config.width * config.height) - config.flowers;
+
+      for (let r = 0; r < config.height; r++) {
+        for (let c = 0; c < config.width; c++) {
+          if (grid[r][c].isRevealed && !grid[r][c].isFlower) {
+            revealedSafeCount++;
+          }
+        }
+      }
+
+      // 안전하게 가꿔진 칸을 전부 다 열었을 때 성공
+      if (revealedSafeCount === totalSafeCells) {
+        triggerWin();
+      }
+    }
+
+    // 승리 시 이벤트
+    function triggerWin() {
+      gameWon = true;
+      stopTimer();
+      setGardenerFace('😎');
+
+      // 아직 깃발 꼽지 않은 미확인 꽃 위치에 자동으로 표지판(🪵) 삽입
+      for (let r = 0; r < config.height; r++) {
+        for (let c = 0; c < config.width; c++) {
+          if (grid[r][c].isFlower && !grid[r][c].isFlagged) {
+            grid[r][c].isFlagged = true;
+            grid[r][c].element.classList.add('flagged');
+            grid[r][c].element.querySelector('.cell-content').textContent = flagEmoji;
+          }
+        }
+      }
+      flagsCount = config.flowers;
+      updateHeader();
+
+      // 축하 콘페티 및 사운드
+      startConfetti();
+      SoundEffects.playWin();
+
+      // 결과 모달 창 띄우기
+      showModal('win');
+    }
+
+    // 패배 시 이벤트
+    function triggerLoss(clickedCell) {
+      gameOver = true;
+      stopTimer();
+      setGardenerFace('😵');
+
+      // 밟은 꽃은 시든 꽃(🥀)으로 표기하고 빨간색 터진 효과 배경
+      clickedCell.isRevealed = true;
+      clickedCell.element.classList.add('revealed', 'flower', 'exploded');
+      clickedCell.element.querySelector('.cell-content').textContent = explodedEmoji;
+
+      // 보드 상의 전체 꽃의 위치를 전면 공개
+      for (let r = 0; r < config.height; r++) {
+        for (let c = 0; c < config.width; c++) {
+          const cell = grid[r][c];
+          
+          if (cell === clickedCell) continue;
+
+          if (cell.isFlower) {
+            // 표지판을 안 꽂은 곳만 꽃을 노출
+            if (!cell.isFlagged) {
+              cell.isRevealed = true;
+              cell.element.classList.add('revealed', 'flower');
+              const span = cell.element.querySelector('.cell-content');
+              span.textContent = cell.flowerEmoji;
+              span.classList.add('animate-pop');
+            }
+          } else if (cell.isFlagged) {
+            // 꽃이 없는데 잘못 꽂아둔 표지판은 에러 스타일(🪵❌) 부여
+            cell.element.classList.add('wrong-flag');
+            cell.element.querySelector('.cell-content').innerHTML = `${flagEmoji}❌`;
+          }
+        }
+      }
+
+      // 사운드 및 모달 팝업
+      SoundEffects.playLose();
+      showModal('loss');
+    }
+
+    // ==========================================
+    // 5. 타이머 및 UI 인터랙션 헬퍼 함수
+    // ==========================================
+
+    // 경과 시간 타이머 개시
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timeElapsed = 0;
+      updateHeader();
+      
+      timerInterval = setInterval(() => {
+        timeElapsed++;
+        if (timeElapsed > 999) timeElapsed = 999; // 클래식 감성의 3자리 고정
+        updateHeader();
+      }, 1000);
+    }
+
+    // 타이머 일시정지/정지
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // 상단 수치 정보 바인딩
+    function updateHeader() {
+      // 남은 꽃 표시 (꽃 개수 - 설치된 깃발)
+      const countDisplay = Math.max(0, config.flowers - flagsCount);
+      document.getElementById('flowers-count').textContent = String(countDisplay).padStart(3, '0');
+      
+      // 타이머 표시
+      document.getElementById('timer-count').textContent = String(timeElapsed).padStart(3, '0');
+    }
+
+    // 정원사 캐릭터 이모지 수동 설정
+    function setGardenerFace(emoji) {
+      document.getElementById('reset-face').textContent = emoji;
+    }
+
+    // 기본 정원사 캐릭터 이모지로 복원
+    function resetGardenerFaceDefault() {
+      if (gameOver) {
+        setGardenerFace('😵');
+      } else if (gameWon) {
+        setGardenerFace('😎');
+      } else {
+        setGardenerFace('🙂');
+      }
+    }
+
+    // 난이도 프리셋 적용
+    function setPreset(preset) {
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      
+      if (preset === 'beginner') {
+        document.getElementById('preset-beginner').classList.add('active');
+        document.getElementById('input-width').value = 9;
+        document.getElementById('input-height').value = 9;
+        document.getElementById('input-flowers').value = 10;
+      } else if (preset === 'intermediate') {
+        document.getElementById('preset-intermediate').classList.add('active');
+        document.getElementById('input-width').value = 16;
+        document.getElementById('input-height').value = 16;
+        document.getElementById('input-flowers').value = 40;
+      } else if (preset === 'advanced') {
+        document.getElementById('preset-advanced').classList.add('active');
+        document.getElementById('input-width').value = 30;
+        document.getElementById('input-height').value = 16;
+        document.getElementById('input-flowers').value = 99;
+      }
+      applyCustomSettings();
+    }
+
+    // 유저가 임의 값을 입력할 때 상단의 프리셋 선택 상태를 지우고 '커스텀'을 비춥니다.
+    function markCustomActive() {
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      const customBtn = document.getElementById('preset-custom');
+      customBtn.style.display = 'block';
+      customBtn.classList.add('active');
+    }
+
+    // 커스텀 세팅값 적용 및 검증
+    function applyCustomSettings() {
+      const w = parseInt(document.getElementById('input-width').value);
+      const h = parseInt(document.getElementById('input-height').value);
+      const f = parseInt(document.getElementById('input-flowers').value);
+
+      if (isNaN(w) || isNaN(h) || isNaN(f)) {
+        showModal('warning', '가로 크기, 세로 크기, 꽃 개수를 모두 올바른 숫자로 입력해 주세요.');
+        return;
+      }
+
+      if (w < 5 || w > 50 || h < 5 || h > 50) {
+        showModal('warning', '정원의 가로 및 세로 크기는 최소 5칸에서 최대 50칸까지 조절이 가능합니다.');
+        return;
+      }
+
+      const totalCells = w * h;
+      const maxFlowers = totalCells - 9; // 첫 클릭 3x3 범위 보호용 잔여공간
+
+      if (f < 1) {
+        showModal('warning', '정원에는 최소 1송이 이상의 꽃이 심어져야 가꿀 의미가 있습니다!');
+        return;
+      }
+
+      if (f > maxFlowers) {
+        showModal('warning', `정원사가 첫 단추를 상쾌하게 시작할 수 있도록 3×3(9칸)의 안전구역을 확보해야 합니다. 현재 보드 크기(${w}×${h}) 기준으로 배치 가능한 최대 꽃송이는 <strong>${maxFlowers}송이</strong>입니다.`);
+        return;
+      }
+
+      // 최종 환경 설정 교체 후 재시작
+      config.width = w;
+      config.height = h;
+      config.flowers = f;
+      
+      restartGame();
+    }
+
+    // 현재 난이도의 한국어 명칭 가져오기
+    function getDifficultyLabel() {
+      if (config.width === 9 && config.height === 9 && config.flowers === 10) return '초급 (Fresh)';
+      if (config.width === 16 && config.height === 16 && config.flowers === 40) return '중급 (Standard)';
+      if (config.width === 30 && config.height === 16 && config.flowers === 99) return '고급 (Expert)';
+      return '사용자 정의 (Custom)';
+    }
+
+    // 게임 전면 재시작
+    function restartGame() {
+      stopTimer();
+      firstClick = true;
+      gameOver = false;
+      gameWon = false;
+      timeElapsed = 0;
+      flagsCount = 0;
+      
+      setGardenerFace('🙂');
+      updateHeader();
+      initGrid();
+      
+      // 프리셋 활성 상태 갱신
+      syncPresetButtons();
+    }
+
+    // 설정된 해상도에 매칭되는 프리셋 버튼 동기화
+    function syncPresetButtons() {
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      const customBtn = document.getElementById('preset-custom');
+      
+      if (config.width === 9 && config.height === 9 && config.flowers === 10) {
+        document.getElementById('preset-beginner').classList.add('active');
+        customBtn.style.display = 'none';
+      } else if (config.width === 16 && config.height === 16 && config.flowers === 40) {
+        document.getElementById('preset-intermediate').classList.add('active');
+        customBtn.style.display = 'none';
+      } else if (config.width === 30 && config.height === 16 && config.flowers === 99) {
+        document.getElementById('preset-advanced').classList.add('active');
+        customBtn.style.display = 'none';
+      } else {
+        customBtn.style.display = 'block';
+        customBtn.classList.add('active');
+      }
+    }
+
+    // ==========================================
+    // 6. 사운드 토글
+    // ==========================================
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.querySelector('.sound-toggle-btn');
+      const icon = document.getElementById('sound-icon');
+      
+      if (soundEnabled) {
+        icon.textContent = '🔊';
+        btn.innerHTML = `<span id="sound-icon">🔊</span> 사운드 켜짐`;
+      } else {
+        icon.textContent = '🔇';
+        btn.innerHTML = `<span id="sound-icon">🔇</span> 사운드 꺼짐`;
+      }
+    }
+
+    // ==========================================
+    // 7. 자체 커스텀 모달 레이어 컨트롤
+    // ==========================================
+    function showModal(type, msg = '') {
+      const modal = document.getElementById('custom-modal');
+      const icon = document.getElementById('modal-icon');
+      const title = document.getElementById('modal-title');
+      const body = document.getElementById('modal-body');
+      const actions = modal.querySelector('.modal-actions');
+      
+      modal.classList.add('active');
+
+      if (type === 'win') {
+        icon.textContent = '🏆';
+        title.textContent = '아름다운 정원이 완성되었습니다!';
+        body.innerHTML = `
+          <p class="modal-text">축하합니다! 꽃 한 송이도 상처 내지 않고 잡초와 거친 흙을 깔끔하게 정리했습니다. 훌륭한 정원사님이시군요!</p>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <span class="stat-label">난이도</span>
+              <span class="stat-value">${getDifficultyLabel()}</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">경과 시간</span>
+              <span class="stat-value">${timeElapsed}초</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">정원 면적</span>
+              <span class="stat-value">${config.width} × ${config.height}</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">보존한 꽃</span>
+              <span class="stat-value">${config.flowers}송이</span>
+            </div>
+          </div>
+        `;
+        actions.innerHTML = `
+          <button class="btn btn-primary" onclick="closeModal(); restartGame();">다시 가꾸기</button>
+          <button class="btn btn-secondary" onclick="closeModal();">정원 감상하기</button>
+        `;
+      } else if (type === 'loss') {
+        icon.textContent = '🥀';
+        title.textContent = '꽃이 꺾이고 말았습니다...';
+        body.innerHTML = `
+          <p class="modal-text">아차! 잡초를 캐내려다 정원 한복판의 소중한 꽃을 밟아버렸습니다. 무너진 꽃밭을 보니 정원사님의 마음도 메말라갑니다.</p>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <span class="stat-label">도전 시간</span>
+              <span class="stat-value">${timeElapsed}초</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">설치된 표지판</span>
+              <span class="stat-value">${flagsCount}개</span>
+            </div>
+          </div>
+        `;
+        actions.innerHTML = `
+          <button class="btn btn-primary" onclick="closeModal(); restartGame();">재도전하기</button>
+          <button class="btn btn-secondary" onclick="closeModal();">닫기</button>
+        `;
+      } else if (type === 'warning') {
+        icon.textContent = '⚠️';
+        title.textContent = '경고';
+        body.innerHTML = `<p class="modal-text" style="text-align: left;">${msg}</p>`;
+        actions.innerHTML = `
+          <button class="btn btn-primary" onclick="closeModal();">확인</button>
+        `;
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('custom-modal').classList.remove('active');
+      stopConfetti();
+    }
+
+    // ==========================================
+    // 8. 콘페티(축하 가루) 렌더링 엔진
+    // ==========================================
+    let confettiActive = false;
+    let confettiParticles = [];
+    const confettiColors = ['#FF4081', '#FFEB3B', '#00E676', '#00B0FF', '#D500F9', '#FF5722', '#FF8A80', '#B9F6CA'];
+
+    function startConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      confettiActive = true;
+      confettiParticles = [];
+
+      // 150개의 입자 생성
+      for (let i = 0; i < 150; i++) {
+        confettiParticles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          r: Math.random() * 5 + 5,
+          d: Math.random() * canvas.height,
+          color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+          tilt: Math.random() * 10 - 5,
+          tiltAngleIncremental: Math.random() * 0.08 + 0.02,
+          tiltAngle: 0
+        });
+      }
+
+      function drawConfetti() {
+        if (!confettiActive) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        let allFinished = true;
+
+        confettiParticles.forEach((p) => {
+          p.tiltAngle += p.tiltAngleIncremental;
+          p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2.5; // 속도 조절
+          p.x += Math.sin(p.tiltAngle);
+          p.tilt = Math.sin(p.tiltAngle) * 12;
+
+          if (p.y < canvas.height) {
+            allFinished = false;
+          }
+
+          ctx.beginPath();
+          ctx.lineWidth = p.r;
+          ctx.strokeStyle = p.color;
+          ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+          ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+          ctx.stroke();
+        });
+
+        if (allFinished) {
+          confettiActive = false;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        } else {
+          requestAnimationFrame(drawConfetti);
+        }
+      }
+
+      requestAnimationFrame(drawConfetti);
+    }
+
+    function stopConfetti() {
+      confettiActive = false;
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // 윈도우 크기가 조정될 때 콘페티 캔버스 스케일 동기화
+    window.addEventListener('resize', () => {
+      const canvas = document.getElementById('confetti-canvas');
+      if (canvas && confettiActive) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+    });
+
+    // ==========================================
+    // 9. 페이지 로드 시 최초 실행
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      // 기본 초급 난이도로 정원을 그립니다.
+      restartGame();
+    });
+  </script>
+</body>
+</html>
